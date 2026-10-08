@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Python App</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1915;
+      --muted: #6d665c;
+      --line: #d9d3c7;
+      --paper: #f7f4ee;
+      --editor: #1b1e24;
+      --editor-ink: #e7e2d8;
+      --editor-muted: #8d93a0;
+      --amber: #e39b2b;
+      --amber-ink: #2a1d08;
+      --danger: #9d2c2c;
+      --ok: #2f6b45;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+    }
+
+    button, textarea, pre { font: inherit; }
+
+    .shell {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    header {
+      height: 52px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdf8;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    #status {
+      margin-right: auto;
+      color: var(--muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    #status.error { color: var(--danger); }
+    #status.ok { color: var(--ok); }
+
+    .actions { display: flex; gap: 8px; }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      height: 32px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: 0.55; cursor: progress; }
+
+    #publish {
+      background: var(--amber);
+      border-color: #c4841d;
+      color: var(--amber-ink);
+      font-weight: 650;
+    }
+
+    main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    .editor-pane, .preview-pane {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-pane {
+      width: 46%;
+      background: var(--editor);
+      color: var(--editor-ink);
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      border: 0;
+      margin: 0;
+      padding: 16px 18px;
+      background: transparent;
+      color: inherit;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 13.5px;
+      line-height: 1.55;
+      outline: none;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    #log {
+      flex: none;
+      height: 132px;
+      margin: 0;
+      padding: 10px 14px;
+      overflow: auto;
+      border-top: 1px solid #30343c;
+      color: var(--editor-muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .splitter {
+      width: 7px;
+      flex: none;
+      cursor: col-resize;
+      background: linear-gradient(90deg, transparent 2px, var(--line) 3px, transparent 4px);
+    }
+
+    .preview-pane { flex: 1; background: #fff; }
+
+    .preview-bar {
+      height: 36px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+    }
+
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .empty[hidden], iframe[hidden] { display: none; }
+
+    @media (max-width: 860px) {
+      main { flex-direction: column; }
+      .editor-pane { width: 100% !important; height: 52%; }
+      .splitter { width: 100%; height: 7px; cursor: row-resize; }
+      .preview-pane { height: 48%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Python App</h1>
+      <div id="status">未发布</div>
+      <div class="actions">
+        <button id="save" type="button">保存</button>
+        <button id="publish" type="button">发布</button>
+      </div>
+    </header>
+    <main>
+      <section class="editor-pane" id="editor-pane">
+        <textarea id="editor" spellcheck="false" aria-label="Python 代码"></textarea>
+        <pre id="log" aria-label="运行日志"></pre>
+      </section>
+      <div class="splitter" id="splitter" role="separator" aria-orientation="vertical"></div>
+      <section class="preview-pane">
+        <div class="preview-bar">Preview · /app/demo001</div>
+        <div class="stage">
+          <div class="empty" id="empty">发布后在这里预览</div>
+          <iframe id="preview" hidden title="Preview" src="about:blank"></iframe>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const editor = document.querySelector("#editor");
+    const logEl = document.querySelector("#log");
+    const statusEl = document.querySelector("#status");
+    const emptyEl = document.querySelector("#empty");
+    const frame = document.querySelector("#preview");
+    const saveButton = document.querySelector("#save");
+    const publishButton = document.querySelector("#publish");
+    const editorPane = document.querySelector("#editor-pane");
+    const splitter = document.querySelector("#splitter");
+
+    let publishing = false;
+    let publishSeq = 0;
+    let saveTimer = 0;
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = kind || "";
+    }
+
+    function showPreview(path) {
+      emptyEl.hidden = true;
+      frame.hidden = false;
+      frame.src = path + "?t=" + Date.now();
+    }
+
+    function hidePreview() {
+      frame.hidden = true;
+      frame.src = "about:blank";
+      emptyEl.hidden = false;
+    }
+
+    async function load() {
+      const [codeRes, statusRes] = await Promise.all([
+        fetch("/api/code"),
+        fetch("/api/status"),
+      ]);
+      const code = await codeRes.json();
+      const status = await statusRes.json();
+      editor.value = code.code;
+      logEl.textContent = status.log || "";
+      if (status.running) {
+        setStatus("运行中", "ok");
+        showPreview(status.preview);
+      } else if (status.error) {
+        setStatus(status.error, "error");
+      }
+    }
+
+    async function save() {
+      const response = await fetch("/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: editor.value }),
+      });
+      const data = await response.json();
+      if (!data.ok) {
+        setStatus(data.error || "保存失败", "error");
+        return;
+      }
+      if (!publishing) setStatus("已保存", "ok");
+    }
+
+    async function publish() {
+      if (publishing) return;
+      publishing = true;
+      const seq = ++publishSeq;
+      publishButton.disabled = true;
+      setStatus("发布中…");
+      try {
+        const response = await fetch("/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: editor.value }),
+        });
+        const data = await response.json();
+        if (seq !== publishSeq) return;
+        logEl.textContent = data.log || "";
+        logEl.scrollTop = logEl.scrollHeight;
+        if (!data.ok) {
+          setStatus(data.error || "发布失败", "error");
+          if (!data.running) hidePreview();
+          return;
+        }
+        setStatus("运行中", "ok");
+        showPreview(data.preview);
+      } catch (error) {
+        if (seq === publishSeq) setStatus("发布请求失败", "error");
+      } finally {
+        if (seq === publishSeq) {
+          publishing = false;
+          publishButton.disabled = false;
+        }
+      }
+    }
+
+    editor.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.setRangeText("    ", start, end, "end");
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        save();
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        publish();
+      }
+    });
+
+    editor.addEventListener("input", () => {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(save, 800);
+    });
+
+    saveButton.addEventListener("click", save);
+    publishButton.addEventListener("click", publish);
+
+    splitter.addEventListener("pointerdown", (event) => {
+      if (window.matchMedia("(max-width: 860px)").matches) return;
+      event.preventDefault();
+      const move = (ev) => {
+        const width = Math.min(window.innerWidth - 280, Math.max(280, ev.clientX));
+        editorPane.style.width = width + "px";
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+
+    load();
+  </script>
+</body>
+</html>
