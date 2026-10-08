@@ -30,7 +30,7 @@
       font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
     }
 
-    button, textarea, pre { font: inherit; }
+    button, textarea, pre, a { font: inherit; }
 
     .shell {
       height: 100%;
@@ -69,13 +69,16 @@
 
     .actions { display: flex; gap: 8px; }
 
-    button {
+    button, a.button {
+      display: inline-flex;
+      align-items: center;
       border: 1px solid var(--line);
       background: #fff;
       color: var(--ink);
       height: 32px;
       padding: 0 12px;
       cursor: pointer;
+      text-decoration: none;
     }
 
     button:disabled { opacity: 0.55; cursor: progress; }
@@ -197,6 +200,7 @@
       <h1>Python App</h1>
       <div id="status">未发布</div>
       <div class="actions">
+        <a class="button" href="/packages">依赖</a>
         <button id="save" type="button">保存</button>
         <button id="publish" type="button">发布</button>
       </div>

@@ -1,6 +1,6 @@
 [project]
 name = "sandpox"
-version = "0.1.1"
+version = "0.1.2"
 description = "Paste Gradio code, publish it, and preview the running app."
 readme = "README.md"
 requires-python = ">=3.11"

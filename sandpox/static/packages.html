@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>依赖</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1915;
+      --muted: #6d665c;
+      --line: #d9d3c7;
+      --paper: #f7f4ee;
+      --editor: #1b1e24;
+      --editor-ink: #e7e2d8;
+      --editor-muted: #8d93a0;
+      --amber: #e39b2b;
+      --amber-ink: #2a1d08;
+      --danger: #9d2c2c;
+      --ok: #2f6b45;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+    }
+
+    button, textarea, input, pre, a { font: inherit; }
+
+    .shell {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    header {
+      height: 52px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdf8;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    #status {
+      margin-right: auto;
+      color: var(--muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    #status.error { color: var(--danger); }
+    #status.ok { color: var(--ok); }
+
+    .actions { display: flex; gap: 8px; }
+
+    button, a.button {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      height: 32px;
+      padding: 0 12px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button:disabled { opacity: 0.55; cursor: progress; }
+
+    #install {
+      background: var(--amber);
+      border-color: #c4841d;
+      color: var(--amber-ink);
+      font-weight: 650;
+    }
+
+    main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    .install-pane, .list-pane {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .install-pane {
+      width: 42%;
+      background: var(--editor);
+      color: var(--editor-ink);
+    }
+
+    textarea {
+      flex: none;
+      height: 168px;
+      width: 100%;
+      resize: none;
+      border: 0;
+      margin: 0;
+      padding: 16px 18px;
+      background: transparent;
+      color: inherit;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 13.5px;
+      line-height: 1.55;
+      outline: none;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    .hint {
+      flex: none;
+      margin: 0;
+      padding: 0 18px 12px;
+      color: var(--editor-muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      line-height: 1.5;
+    }
+
+    #log {
+      flex: 1;
+      min-height: 0;
+      margin: 0;
+      padding: 12px 18px 16px;
+      overflow: auto;
+      border-top: 1px solid #30343c;
+      color: var(--editor-muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .list-pane { flex: 1; background: #fffdf8; }
+
+    .list-bar {
+      height: 44px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    #filter {
+      flex: 1;
+      height: 30px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 0 10px;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      outline: none;
+    }
+
+    #count {
+      color: var(--muted);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .table-wrap { flex: 1; min-height: 0; overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #fffdf8;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    td.version { color: var(--muted); }
+
+    td.action { width: 72px; text-align: right; }
+
+    button.uninstall {
+      height: 26px;
+      padding: 0 8px;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+    }
+
+    .empty-row td {
+      color: var(--muted);
+      text-align: center;
+      padding: 28px 14px;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+    }
+
+    @media (max-width: 860px) {
+      main { flex-direction: column; }
+      .install-pane { width: 100%; height: 46%; }
+      .list-pane { height: 54%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>依赖</h1>
+      <div id="status">读取中…</div>
+      <div class="actions">
+        <a class="button" href="/editor">编辑器</a>
+        <button id="refresh" type="button">刷新</button>
+        <button id="install" type="button">安装</button>
+      </div>
+    </header>
+    <main>
+      <section class="install-pane">
+        <textarea id="specs" spellcheck="false" aria-label="要安装的包" placeholder="每行一个包，例如&#10;requests&#10;pillow==11.0.0"></textarea>
+        <p class="hint">用 uv pip install 装进当前环境。装完后回到编辑器重新发布，应用才能 import 到新包。</p>
+        <pre id="log" aria-label="安装日志">安装输出会显示在这里</pre>
+      </section>
+      <section class="list-pane">
+        <div class="list-bar">
+          <input id="filter" type="search" placeholder="筛选已安装的包" aria-label="筛选已安装的包">
+          <span id="count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>包</th><th>版本</th><th></th></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const specs = document.querySelector("#specs");
+    const logEl = document.querySelector("#log");
+    const statusEl = document.querySelector("#status");
+    const filterEl = document.querySelector("#filter");
+    const countEl = document.querySelector("#count");
+    const rowsEl = document.querySelector("#rows");
+    const installButton = document.querySelector("#install");
+    const refreshButton = document.querySelector("#refresh");
+
+    let packages = [];
+    let polling = false;
+    let busy = false;
+    let taskLabel = "处理";
+
+    function api(path, options) {
+      return fetch(new URL(path, window.location.origin), options);
+    }
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = kind || "";
+    }
+
+    function setBusy(next) {
+      busy = next;
+      installButton.disabled = next;
+      refreshButton.disabled = next;
+    }
+
+    function renderRows() {
+      const query = filterEl.value.trim().toLowerCase();
+      const visible = packages.filter((item) => item.name.toLowerCase().includes(query));
+      countEl.textContent = query ? `${visible.length} / ${packages.length}` : `${packages.length} 个包`;
+      rowsEl.replaceChildren();
+      if (!visible.length) {
+        const row = document.createElement("tr");
+        row.className = "empty-row";
+        const cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = packages.length ? "没有匹配的包" : "还没有已安装的包";
+        row.append(cell);
+        rowsEl.append(row);
+        return;
+      }
+      for (const item of visible) {
+        const row = document.createElement("tr");
+        const name = document.createElement("td");
+        name.textContent = item.name;
+        const version = document.createElement("td");
+        version.className = "version";
+        version.textContent = item.version;
+        const action = document.createElement("td");
+        action.className = "action";
+        if (!item.protected) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "uninstall";
+          button.textContent = "卸载";
+          button.disabled = busy;
+          button.addEventListener("click", () => uninstall(item.name));
+          action.append(button);
+        }
+        row.append(name, version, action);
+        rowsEl.append(row);
+      }
+    }
+
+    function showLog(text) {
+      logEl.textContent = text || "安装输出会显示在这里";
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    async function loadPackages() {
+      const response = await api("/api/packages");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "读取包列表失败");
+      packages = data.packages || [];
+      renderRows();
+    }
+
+    async function poll() {
+      if (polling) return;
+      polling = true;
+      setBusy(true);
+      try {
+        while (true) {
+          const response = await api("/api/packages/job");
+          const job = await response.json();
+          showLog(job.log);
+          if (job.running) {
+            setStatus(taskLabel + "中…");
+            await new Promise((resolve) => window.setTimeout(resolve, 400));
+            continue;
+          }
+          if (job.ok === false) setStatus(job.error || "失败", "error");
+          else if (job.ok === true) setStatus("完成", "ok");
+          else setStatus("当前环境", "ok");
+          break;
+        }
+      } catch (error) {
+        setStatus("读取安装状态失败", "error");
+      } finally {
+        polling = false;
+        setBusy(false);
+        renderRows();
+        try { await loadPackages(); } catch (error) { setStatus("读取包列表失败", "error"); }
+      }
+    }
+
+    async function install() {
+      if (busy) return;
+      taskLabel = "安装";
+      setBusy(true);
+      setStatus("安装中…");
+      try {
+        const response = await api("/api/packages/install", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requirements: specs.value }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          setStatus(data.error || "安装失败", "error");
+          setBusy(false);
+          return;
+        }
+        await poll();
+      } catch (error) {
+        setStatus("安装请求失败", "error");
+        setBusy(false);
+      }
+    }
+
+    async function uninstall(name) {
+      if (busy) return;
+      if (!window.confirm(`卸载 ${name}？`)) return;
+      taskLabel = "卸载";
+      setBusy(true);
+      setStatus("卸载中…");
+      try {
+        const response = await api("/api/packages/uninstall", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          setStatus(data.error || "卸载失败", "error");
+          setBusy(false);
+          renderRows();
+          return;
+        }
+        await poll();
+      } catch (error) {
+        setStatus("卸载请求失败", "error");
+        setBusy(false);
+        renderRows();
+      }
+    }
+
+    specs.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        const start = specs.selectionStart;
+        const end = specs.selectionEnd;
+        specs.setRangeText("    ", start, end, "end");
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        install();
+      }
+    });
+
+    filterEl.addEventListener("input", renderRows);
+    installButton.addEventListener("click", install);
+    refreshButton.addEventListener("click", () => {
+      setStatus("读取中…");
+      loadPackages()
+        .then(() => { if (!busy) setStatus("当前环境", "ok"); })
+        .catch((error) => setStatus(error.message || "读取包列表失败", "error"));
+    });
+
+    Promise.all([
+      loadPackages(),
+      api("/api/packages/job").then((response) => response.json()),
+    ]).then(([, job]) => {
+      if (job.log) showLog(job.log);
+      if (job.running) poll();
+      else if (job.ok === false) setStatus(job.error || "失败", "error");
+      else setStatus("当前环境", "ok");
+    }).catch((error) => setStatus(error.message || "读取包列表失败", "error"));
+  </script>
+</body>
+</html>
