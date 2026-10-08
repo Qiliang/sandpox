@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from sandpox.auth import BasicAuthMiddleware, basic_auth_credentials
@@ -62,8 +62,12 @@ app.add_middleware(BasicAuthMiddleware, username=_basic_user, password=_basic_pa
 
 
 @app.get("/")
-async def root() -> RedirectResponse:
-    return RedirectResponse("/editor")
+async def root() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "view.html",
+        media_type="text/html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/editor")
